@@ -13,12 +13,11 @@ import java.util.UUID;
 @Table(name = "users")
 
 public class User implements Serializable {
-    private static final long serialVersionUID = 5514526011795248312L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id", unique = true, nullable = false)
-    private UUID id;
+    private Long id;
 
     @Column(name = "first_name", nullable = false)
     private String firstName;
@@ -37,7 +36,6 @@ public class User implements Serializable {
 
     @PrePersist
     void onCreate() {
-        this.id = UUID.randomUUID();
         this.createdAt = LocalDateTime.now(ZoneId.of("+00:00"));
     }
 }
