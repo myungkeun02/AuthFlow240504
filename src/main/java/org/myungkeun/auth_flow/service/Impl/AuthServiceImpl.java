@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.myungkeun.auth_flow.config.security.JwtService;
 import org.myungkeun.auth_flow.dto.request.LoginRequest;
 import org.myungkeun.auth_flow.dto.request.SignupRequest;
+import org.myungkeun.auth_flow.dto.request.UpdatePasswordRequest;
 import org.myungkeun.auth_flow.dto.response.LoginResponse;
 import org.myungkeun.auth_flow.dto.response.SignupResponse;
 import org.myungkeun.auth_flow.entity.Member;
@@ -16,6 +17,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.security.Principal;
 
 @Service
 @RequiredArgsConstructor
@@ -74,4 +77,21 @@ public class AuthServiceImpl implements AuthService {
             throw new InternalServerErrorException("서버 오류가 발생했습니다.");
         }
     }
+
+    @Override
+    public Member getMemberInfo(Principal connectedUser) {
+        var member = (Member) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();
+        return member;
+    }
+
+    @Override
+    public Member updateMemberPassword(Principal connectedUser, UpdatePasswordRequest request) {
+        Member member = (Member) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();
+        Member oldMember = memberRepository.findByEmail(member.getEmail())
+                .orElseThrow();
+        oldMember.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        Member response =  memberRepository.save(oldMember);
+        return response;
+    }
+
 }

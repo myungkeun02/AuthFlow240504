@@ -3,16 +3,17 @@ package org.myungkeun.auth_flow.controller;
 import lombok.RequiredArgsConstructor;
 import org.myungkeun.auth_flow.dto.request.LoginRequest;
 import org.myungkeun.auth_flow.dto.request.SignupRequest;
+import org.myungkeun.auth_flow.dto.request.UpdatePasswordRequest;
 import org.myungkeun.auth_flow.dto.response.BaseResponse;
 import org.myungkeun.auth_flow.dto.response.LoginResponse;
 import org.myungkeun.auth_flow.dto.response.SignupResponse;
+import org.myungkeun.auth_flow.entity.Member;
 import org.myungkeun.auth_flow.service.AuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
 
 @RestController
 @RequiredArgsConstructor
@@ -39,4 +40,26 @@ public class AuthController {
                 .status(HttpStatus.CREATED)
                 .body(new BaseResponse<>(result, HttpStatus.CREATED.value()));
     }
+
+    @GetMapping("/profile")
+    ResponseEntity<BaseResponse<Member>> getMemberInfo(
+            Principal connectedUser
+    ) {
+        Member result = authService.getMemberInfo(connectedUser);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(new BaseResponse<>(result, HttpStatus.OK.value()));
+    }
+
+    @PutMapping("/update/password")
+    ResponseEntity<BaseResponse<Member>> updateMemberPassword(
+            Principal connectedUser,
+            @RequestBody UpdatePasswordRequest request
+    ) {
+        Member result = authService.updateMemberPassword(connectedUser, request);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(new BaseResponse<>(result, HttpStatus.OK.value()));
+    }
+
 }
