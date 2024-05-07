@@ -1,5 +1,6 @@
 package org.myungkeun.auth_flow.service.Impl;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.myungkeun.auth_flow.config.security.JwtService;
 import org.myungkeun.auth_flow.dto.request.LoginRequest;
@@ -13,24 +14,33 @@ import org.myungkeun.auth_flow.exception.BadRequestException;
 import org.myungkeun.auth_flow.exception.InternalServerErrorException;
 import org.myungkeun.auth_flow.repository.MemberRepository;
 import org.myungkeun.auth_flow.service.AuthService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.security.Principal;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Date;
 
 @Service
 @RequiredArgsConstructor
 
 public class AuthServiceImpl implements AuthService {
+    @Value("${application.security.jwt.access-token.expiration}")
+    private long accessExpiration;
+
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
 
     @Override
-    public LoginResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request, HttpServletResponse response) {
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -43,11 +53,23 @@ public class AuthServiceImpl implements AuthService {
             String accessToken = jwtService.generateAccessToken(member);
             String refreshToken = jwtService.generateRefreshToken(member);
 
-            LoginResponse response = LoginResponse.builder()
+            Duration duration = Duration.ofSeconds(accessExpiration);
+
+            // 쿠키에 토큰
+            ResponseCookie cookie = ResponseCookie.from("accessToken", accessToken)
+                    .httpOnly(true)
+                    .secure(false)
+                    .path("/")
+                    .maxAge(duration)
+                    .build();
+
+            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+            LoginResponse result = LoginResponse.builder()
                     .accessToken(accessToken)
                     .refreshToken(refreshToken)
                     .build();
-            return response;
+            return result;
         } catch (Exception e) {
             throw new InternalServerErrorException("서버 오류가 발생했습니다.");
         }

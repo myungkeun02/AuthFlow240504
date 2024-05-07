@@ -1,5 +1,6 @@
 package org.myungkeun.auth_flow.controller;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.myungkeun.auth_flow.dto.request.LoginRequest;
 import org.myungkeun.auth_flow.dto.request.SignupRequest;
@@ -23,9 +24,10 @@ public class AuthController {
 
     @PostMapping("/login")
     ResponseEntity<BaseResponse<LoginResponse>> login(
-            @RequestBody LoginRequest request
+            @RequestBody LoginRequest request,
+            HttpServletResponse response
     ) {
-        LoginResponse result = authService.login(request);
+        LoginResponse result = authService.login(request, response);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(new BaseResponse<>(result, HttpStatus.OK.value()));
