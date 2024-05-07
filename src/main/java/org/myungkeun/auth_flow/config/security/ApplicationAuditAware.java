@@ -9,6 +9,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.Optional;
 
 public class ApplicationAuditAware implements AuditorAware {
+
     @Override
     public Optional<Long> getCurrentAuditor() {
         Authentication authentication = SecurityContextHolder

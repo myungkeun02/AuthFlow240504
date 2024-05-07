@@ -14,6 +14,7 @@ import org.myungkeun.auth_flow.exception.BadRequestException;
 import org.myungkeun.auth_flow.exception.InternalServerErrorException;
 import org.myungkeun.auth_flow.repository.MemberRepository;
 import org.myungkeun.auth_flow.service.AuthService;
+import org.myungkeun.auth_flow.util.CacheManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -34,6 +35,7 @@ public class AuthServiceImpl implements AuthService {
     @Value("${application.security.jwt.access-token.expiration}")
     private long accessExpiration;
 
+    private final CacheManager cacheManager;
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -52,6 +54,8 @@ public class AuthServiceImpl implements AuthService {
                     .orElseThrow();
             String accessToken = jwtService.generateAccessToken(member);
             String refreshToken = jwtService.generateRefreshToken(member);
+
+            cacheManager.save(member.getEmail(), refreshToken, Duration.ofMinutes(604800000));
 
             Duration duration = Duration.ofSeconds(accessExpiration);
 

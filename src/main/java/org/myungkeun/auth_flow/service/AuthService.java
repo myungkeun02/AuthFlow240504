@@ -18,4 +18,6 @@ public interface AuthService {
     Member getMemberInfo(Principal connectedUser);
 
     Member updateMemberPassword(Principal connectedUser, UpdatePasswordRequest request);
+
+    Boolean existsEmail(String email);
 }

@@ -1,5 +1,6 @@
 package org.myungkeun.auth_flow.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.myungkeun.auth_flow.exception.NotFoundException;
 import org.myungkeun.auth_flow.repository.MemberRepository;
@@ -19,6 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 public class ApplicationConfig {
     private final MemberRepository memberRepository;
+
 
     //비밀번호를 암호화하여 반환하는 Bean
     @Bean

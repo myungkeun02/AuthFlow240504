@@ -10,6 +10,12 @@ services:
       MYSQL_DATABASE: AuthFlow
       MYSQL_USER: user
       MYSQL_PASSWORD: password
+  redis-cache:
+    image: redis
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass "Password@123"
 #    networks:
 #      - myungkeun-networks
 #networks:
