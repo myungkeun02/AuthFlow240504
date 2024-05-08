@@ -1,6 +1,7 @@
 package org.myungkeun.auth_flow.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.myungkeun.auth_flow.dto.request.UpdateInfoRequest;
 import org.myungkeun.auth_flow.dto.request.UpdatePasswordRequest;
 import org.myungkeun.auth_flow.dto.response.BaseResponse;
 import org.myungkeun.auth_flow.entity.Member;
@@ -94,6 +95,27 @@ public class MemberController {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .body(new BaseResponse<>(null, HttpStatus.BAD_REQUEST.value(), e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new BaseResponse<>(null, HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage()));
+        }
+    }
+
+    @PutMapping("/update/info")
+    public ResponseEntity<BaseResponse<Member>> updateMemberInfo(
+            Principal connectedMember,
+            @RequestBody UpdateInfoRequest request
+    ) {
+        try {
+            Member result = memberService.updateMemberInfo(connectedMember, request);
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(new BaseResponse<>(result, HttpStatus.OK.value(), "멤버 정보가 수정되었습니다."));
+        } catch (NotFoundException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new BaseResponse<>(null, HttpStatus.NOT_FOUND.value(), e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
