@@ -14,4 +14,3 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     Boolean existsByNickname(String nickname);
 }
 
-// todo swagger , exists email, nickname

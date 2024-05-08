@@ -15,6 +15,5 @@ public interface MemberService {
 
     Boolean existsNickname(String nickname);
 
-    //todo 정보 수정(nickname)
     Member updateMemberInfo(Principal connectedMember, UpdateInfoRequest request);
 }
