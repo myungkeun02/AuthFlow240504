@@ -13,4 +13,5 @@ import lombok.NoArgsConstructor;
 public class BaseResponse<T> {
     private T data;
     private int statusCode;
+    private String message;
 }
