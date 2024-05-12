@@ -30,6 +30,9 @@ import java.time.Duration;
 public class AuthServiceImpl implements AuthService {
     @Value("${application.security.jwt.access-token.expiration}")
     private long accessExpiration;
+    @Value("${application.security.jwt.refresh-token.expiration}")
+    private long refreshExpiration;
+
 
     private final CacheManager cacheManager;
     private final MemberRepository memberRepository;
@@ -50,8 +53,6 @@ public class AuthServiceImpl implements AuthService {
             String accessToken = jwtService.generateAccessToken(member);
             String refreshToken = jwtService.generateRefreshToken(member);
 
-            cacheManager.save(member.getEmail(), refreshToken, Duration.ofMinutes(604800000));
-
             ResponseCookie cookie = ResponseCookie.from("accessToken", accessToken)
                     .httpOnly(true)
                     .secure(false)
@@ -71,7 +72,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public SignupResponse signup(SignupRequest request) {
             if (memberRepository.findByEmail(request.getEmail()).isPresent()) {
-                throw new BadRequestException("이미 가입된 이메일입니다.");            }
+                throw new BadRequestException("이미 가입된 이메일입니다.");
+            }
             Member member = Member.builder()
                     .email(request.getEmail())
                     .nickname(request.getNickname())

@@ -25,7 +25,8 @@ public class MemberController {
             Principal connectedUser
     ) {
         try {
-            Member result = memberService.getMemberInfo(connectedUser);
+            Member result = memberService.getMemberInfo(
+                    connectedUser);
             return ResponseEntity
                     .status(HttpStatus.OK)
                     .body(new BaseResponse<>(result, HttpStatus.OK.value(), "member 정보를 가져왔습니다."));
