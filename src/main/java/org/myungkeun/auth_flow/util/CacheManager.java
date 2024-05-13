@@ -7,7 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.util.StringUtil;
 import org.apache.tomcat.util.codec.binary.StringUtils;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -28,10 +30,30 @@ public class CacheManager {
         redisTemplate.opsForValue().set(key, "", timeToLive);
     }
 
+
+    @Transactional(readOnly = true)
+    public String getValues(String key) {
+        ValueOperations<String, Object> values = redisTemplate.opsForValue();
+        if (values.get(key) == null) {
+            return "false";
+        }
+        return (String) values.get(key);
+    }
+
+    public void deleteValues(String key) {
+        redisTemplate.delete(key);
+    }
+
+
+    public boolean checkExistsValue(String value) {
+        return !value.equals("false");
+    }
+
     public Boolean isPresent(@NonNull final String key) {
         final var fetchedValue = redisTemplate.opsForValue().get(key);
         return Optional.ofNullable(fetchedValue).isPresent();
     }
+
 
     public <T> Optional<T> fetch(@NonNull final String key, @NonNull final Class<T> targetClass) {
         final var value = Optional.ofNullable(redisTemplate.opsForValue().get(key));

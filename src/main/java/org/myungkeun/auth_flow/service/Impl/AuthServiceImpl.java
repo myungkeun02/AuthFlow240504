@@ -12,6 +12,7 @@ import org.myungkeun.auth_flow.dto.response.SignupResponse;
 import org.myungkeun.auth_flow.entity.Member;
 import org.myungkeun.auth_flow.entity.Role;
 import org.myungkeun.auth_flow.exception.BadRequestException;
+import org.myungkeun.auth_flow.exception.BusinessLogicException;
 import org.myungkeun.auth_flow.exception.InternalServerErrorException;
 import org.myungkeun.auth_flow.repository.MemberRepository;
 import org.myungkeun.auth_flow.service.AuthService;
@@ -19,12 +20,16 @@ import org.myungkeun.auth_flow.util.CacheManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
+import org.springframework.mail.MailSendException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.Duration;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +39,10 @@ public class AuthServiceImpl implements AuthService {
     private long accessExpiration;
     @Value("${application.security.jwt.refresh-token.expiration}")
     private long refreshExpiration;
+    @Value("${application.mail.verified-code.expiration}")
+    private long verifiedCodeExpiration;
 
+    private static final String AUTH_CODE_PREFIX = "AuthCode ";
 
     private final CacheManager cacheManager;
     private final MemberRepository memberRepository;
@@ -45,121 +53,161 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse login(LoginRequest request, HttpServletResponse response) {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
-                            request.getPassword()
-                    )
-            );
-            Member member = memberRepository.findByEmail(request.getEmail())
-                    .orElseThrow();
-            String accessToken = jwtService.generateAccessToken(member);
-            String refreshToken = jwtService.generateRefreshToken(member);
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.getEmail(),
+                        request.getPassword()
+                )
+        );
+        Member member = memberRepository.findByEmail(request.getEmail())
+                .orElseThrow();
+        String accessToken = jwtService.generateAccessToken(member);
+        String refreshToken = jwtService.generateRefreshToken(member);
+        cacheManager.save(member.getEmail(), refreshToken, Duration.ofMinutes(refreshExpiration));
+        ResponseCookie cookie = ResponseCookie.from("accessToken", accessToken)
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(accessExpiration)
+                .build();
 
-            ResponseCookie cookie = ResponseCookie.from("accessToken", accessToken)
-                    .httpOnly(true)
-                    .secure(false)
-                    .path("/")
-                    .maxAge(accessExpiration)
-                    .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-
-            LoginResponse result = LoginResponse.builder()
-                    .accessToken(accessToken)
-                    .refreshToken(refreshToken)
-                    .build();
-            return result;
+        LoginResponse result = LoginResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
+        return result;
     }
 
+
     @Override
-    public SignupResponse signup(SignupRequest request) throws MessagingException {
-            if (memberRepository.findByEmail(request.getEmail()).isPresent()) {
-                throw new BadRequestException("이미 가입된 이메일입니다.");
-            }
-
-
-            Member member = Member.builder()
-                    .email(request.getEmail())
-                    .nickname(request.getNickname())
-                    .memberName(request.getMemberName())
-                    .password(passwordEncoder.encode(request.getPassword()))
-                    .role(Role.ROLE_BASIC)
-                    .build();
-            String link = "http://localhost:8080/api/v1/registration/confirm?token=";
+    public SignupResponse signup(SignupRequest request) {
+        checkDuplicatedEmail(request.getEmail());
+        Member member = Member.builder()
+                .email(request.getEmail())
+                .nickname(request.getNickname())
+                .memberName(request.getMemberName())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .enabled(false)
+                .role(Role.ROLE_BASIC)
+                .build();
             Member responseMember =  memberRepository.save(member);
-            emailSender.sendEmail(request.getEmail(), buildEmail(request.getMemberName(),link));
+//            String link = "http://localhost:8080/api/v1/registration/confirm?token=";
+//            emailSender.sendEmail(request.getEmail(), buildEmail(request.getMemberName(),link));
             return SignupResponse.builder()
                     .member(responseMember)
                     .build();
     }
 
-    private String buildEmail(String name, String link) {
-        return "<div style=\"font-family:Helvetica,Arial,sans-serif;font-size:16px;margin:0;color:#0b0c0c\">\n" +
-                "\n" +
-                "<span style=\"display:none;font-size:1px;color:#fff;max-height:0\"></span>\n" +
-                "\n" +
-                "  <table role=\"presentation\" width=\"100%\" style=\"border-collapse:collapse;min-width:100%;width:100%!important\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">\n" +
-                "    <tbody><tr>\n" +
-                "      <td width=\"100%\" height=\"53\" bgcolor=\"#0b0c0c\">\n" +
-                "        \n" +
-                "        <table role=\"presentation\" width=\"100%\" style=\"border-collapse:collapse;max-width:580px\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" align=\"center\">\n" +
-                "          <tbody><tr>\n" +
-                "            <td width=\"70\" bgcolor=\"#0b0c0c\" valign=\"middle\">\n" +
-                "                <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"border-collapse:collapse\">\n" +
-                "                  <tbody><tr>\n" +
-                "                    <td style=\"padding-left:10px\">\n" +
-                "                  \n" +
-                "                    </td>\n" +
-                "                    <td style=\"font-size:28px;line-height:1.315789474;Margin-top:4px;padding-left:10px\">\n" +
-                "                      <span style=\"font-family:Helvetica,Arial,sans-serif;font-weight:700;color:#ffffff;text-decoration:none;vertical-align:top;display:inline-block\">Confirm your email</span>\n" +
-                "                    </td>\n" +
-                "                  </tr>\n" +
-                "                </tbody></table>\n" +
-                "              </a>\n" +
-                "            </td>\n" +
-                "          </tr>\n" +
-                "        </tbody></table>\n" +
-                "        \n" +
-                "      </td>\n" +
-                "    </tr>\n" +
-                "  </tbody></table>\n" +
-                "  <table role=\"presentation\" class=\"m_-6186904992287805515content\" align=\"center\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"border-collapse:collapse;max-width:580px;width:100%!important\" width=\"100%\">\n" +
-                "    <tbody><tr>\n" +
-                "      <td width=\"10\" height=\"10\" valign=\"middle\"></td>\n" +
-                "      <td>\n" +
-                "        \n" +
-                "                <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"border-collapse:collapse\">\n" +
-                "                  <tbody><tr>\n" +
-                "                    <td bgcolor=\"#1D70B8\" width=\"100%\" height=\"10\"></td>\n" +
-                "                  </tr>\n" +
-                "                </tbody></table>\n" +
-                "        \n" +
-                "      </td>\n" +
-                "      <td width=\"10\" valign=\"middle\" height=\"10\"></td>\n" +
-                "    </tr>\n" +
-                "  </tbody></table>\n" +
-                "\n" +
-                "\n" +
-                "\n" +
-                "  <table role=\"presentation\" class=\"m_-6186904992287805515content\" align=\"center\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"border-collapse:collapse;max-width:580px;width:100%!important\" width=\"100%\">\n" +
-                "    <tbody><tr>\n" +
-                "      <td height=\"30\"><br></td>\n" +
-                "    </tr>\n" +
-                "    <tr>\n" +
-                "      <td width=\"10\" valign=\"middle\"><br></td>\n" +
-                "      <td style=\"font-family:Helvetica,Arial,sans-serif;font-size:19px;line-height:1.315789474;max-width:560px\">\n" +
-                "        \n" +
-                "            <p style=\"Margin:0 0 20px 0;font-size:19px;line-height:25px;color:#0b0c0c\">Hi " + name + ",</p><p style=\"Margin:0 0 20px 0;font-size:19px;line-height:25px;color:#0b0c0c\"> Thank you for registering. Please click on the below link to activate your account: </p><blockquote style=\"Margin:0 0 20px 0;border-left:10px solid #b1b4b6;padding:15px 0 0.1px 15px;font-size:19px;line-height:25px\"><p style=\"Margin:0 0 20px 0;font-size:19px;line-height:25px;color:#0b0c0c\"> <a href=\"" + link + "\">Activate Now</a> </p></blockquote>\n Link will expire in 15 minutes. <p>See you soon</p>" +
-                "        \n" +
-                "      </td>\n" +
-                "      <td width=\"10\" valign=\"middle\"><br></td>\n" +
-                "    </tr>\n" +
-                "    <tr>\n" +
-                "      <td height=\"30\"><br></td>\n" +
-                "    </tr>\n" +
-                "  </tbody></table><div class=\"yj6qo\"></div><div class=\"adL\">\n" +
-                "\n" +
-                "</div></div>";
+    @Override
+    public String sendCodeToEmail(String email) {
+        try {
+//            checkDuplicatedEmail(email);
+            String code = createCode();
+            String title = "이메일 인증코드 발송";
+            emailSender.sendEmail(email, title, code);
+            cacheManager.save(AUTH_CODE_PREFIX+email, code, Duration.ofDays(verifiedCodeExpiration));
+            return code;
+        } catch (Exception e) {
+            throw new MailSendException(e.getMessage());
+        }
+
     }
+
+    private void checkDuplicatedEmail(String email) {
+        if (memberRepository.findByEmail(email).isPresent()) {
+            throw new BadRequestException("이미 가입된 이메일 입니다.");
+        }
+    }
+
+    private String createCode() {
+        int length = 6;
+        try {
+            Random random = SecureRandom.getInstanceStrong();
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < length; i++) {
+                builder.append(random.nextInt(10));
+            }
+            return builder.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new BusinessLogicException("인증코드생성중 에러발생");
+        }
+    }
+
+    @Override
+    public Boolean verifiedCode(String email, String code) {
+        checkDuplicatedEmail(email);
+        String redisCode = cacheManager.getValues(AUTH_CODE_PREFIX + email);
+        return cacheManager.checkExistsValue(redisCode) && redisCode.equals(code);
+    }
+
+//    private String buildEmail(String name, String link) {
+//        return "<div style=\"font-family:Helvetica,Arial,sans-serif;font-size:16px;margin:0;color:#0b0c0c\">\n" +
+//                "\n" +
+//                "<span style=\"display:none;font-size:1px;color:#fff;max-height:0\"></span>\n" +
+//                "\n" +
+//                "  <table role=\"presentation\" width=\"100%\" style=\"border-collapse:collapse;min-width:100%;width:100%!important\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">\n" +
+//                "    <tbody><tr>\n" +
+//                "      <td width=\"100%\" height=\"53\" bgcolor=\"#0b0c0c\">\n" +
+//                "        \n" +
+//                "        <table role=\"presentation\" width=\"100%\" style=\"border-collapse:collapse;max-width:580px\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" align=\"center\">\n" +
+//                "          <tbody><tr>\n" +
+//                "            <td width=\"70\" bgcolor=\"#0b0c0c\" valign=\"middle\">\n" +
+//                "                <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"border-collapse:collapse\">\n" +
+//                "                  <tbody><tr>\n" +
+//                "                    <td style=\"padding-left:10px\">\n" +
+//                "                  \n" +
+//                "                    </td>\n" +
+//                "                    <td style=\"font-size:28px;line-height:1.315789474;Margin-top:4px;padding-left:10px\">\n" +
+//                "                      <span style=\"font-family:Helvetica,Arial,sans-serif;font-weight:700;color:#ffffff;text-decoration:none;vertical-align:top;display:inline-block\">Confirm your email</span>\n" +
+//                "                    </td>\n" +
+//                "                  </tr>\n" +
+//                "                </tbody></table>\n" +
+//                "              </a>\n" +
+//                "            </td>\n" +
+//                "          </tr>\n" +
+//                "        </tbody></table>\n" +
+//                "        \n" +
+//                "      </td>\n" +
+//                "    </tr>\n" +
+//                "  </tbody></table>\n" +
+//                "  <table role=\"presentation\" class=\"m_-6186904992287805515content\" align=\"center\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"border-collapse:collapse;max-width:580px;width:100%!important\" width=\"100%\">\n" +
+//                "    <tbody><tr>\n" +
+//                "      <td width=\"10\" height=\"10\" valign=\"middle\"></td>\n" +
+//                "      <td>\n" +
+//                "        \n" +
+//                "                <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"border-collapse:collapse\">\n" +
+//                "                  <tbody><tr>\n" +
+//                "                    <td bgcolor=\"#1D70B8\" width=\"100%\" height=\"10\"></td>\n" +
+//                "                  </tr>\n" +
+//                "                </tbody></table>\n" +
+//                "        \n" +
+//                "      </td>\n" +
+//                "      <td width=\"10\" valign=\"middle\" height=\"10\"></td>\n" +
+//                "    </tr>\n" +
+//                "  </tbody></table>\n" +
+//                "\n" +
+//                "\n" +
+//                "\n" +
+//                "  <table role=\"presentation\" class=\"m_-6186904992287805515content\" align=\"center\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"border-collapse:collapse;max-width:580px;width:100%!important\" width=\"100%\">\n" +
+//                "    <tbody><tr>\n" +
+//                "      <td height=\"30\"><br></td>\n" +
+//                "    </tr>\n" +
+//                "    <tr>\n" +
+//                "      <td width=\"10\" valign=\"middle\"><br></td>\n" +
+//                "      <td style=\"font-family:Helvetica,Arial,sans-serif;font-size:19px;line-height:1.315789474;max-width:560px\">\n" +
+//                "        \n" +
+//                "            <p style=\"Margin:0 0 20px 0;font-size:19px;line-height:25px;color:#0b0c0c\">Hi " + name + ",</p><p style=\"Margin:0 0 20px 0;font-size:19px;line-height:25px;color:#0b0c0c\"> Thank you for registering. Please click on the below link to activate your account: </p><blockquote style=\"Margin:0 0 20px 0;border-left:10px solid #b1b4b6;padding:15px 0 0.1px 15px;font-size:19px;line-height:25px\"><p style=\"Margin:0 0 20px 0;font-size:19px;line-height:25px;color:#0b0c0c\"> <a href=\"" + link + "\">Activate Now</a> </p></blockquote>\n Link will expire in 15 minutes. <p>See you soon</p>" +
+//                "        \n" +
+//                "      </td>\n" +
+//                "      <td width=\"10\" valign=\"middle\"><br></td>\n" +
+//                "    </tr>\n" +
+//                "    <tr>\n" +
+//                "      <td height=\"30\"><br></td>\n" +
+//                "    </tr>\n" +
+//                "  </tbody></table><div class=\"yj6qo\"></div><div class=\"adL\">\n" +
+//                "\n" +
+//                "</div></div>";
+//    }
 }

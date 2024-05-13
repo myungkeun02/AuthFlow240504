@@ -11,7 +11,10 @@ import org.myungkeun.auth_flow.exception.BadRequestException;
 import org.myungkeun.auth_flow.service.AuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailSendException;
 import org.springframework.web.bind.annotation.*;
+
+import java.security.NoSuchAlgorithmException;
 
 
 @RestController
@@ -45,7 +48,7 @@ public class AuthController {
             SignupResponse result = authService.signup(request);
             return ResponseEntity
                     .status(HttpStatus.CREATED)
-                    .body(new BaseResponse<>(result, HttpStatus.CREATED.value(),"회원가입 되었습니다."));
+                    .body(new BaseResponse<>(result, HttpStatus.CREATED.value(), "회원가입 되었습니다."));
         } catch (BadRequestException e) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
@@ -57,4 +60,37 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/email/varication-code/send")
+    ResponseEntity<BaseResponse<String>> sendCodeToEmail(
+            @RequestBody String email
+    ) {
+        try {
+            String result = authService.sendCodeToEmail(email);
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(new BaseResponse<>(result, HttpStatus.OK.value(), "이메일 전송 완료"));
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new BaseResponse<>(null, HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage()));
+        }
+    }
+
+    @GetMapping("/email/varacation-code")
+    ResponseEntity<BaseResponse<Boolean>> verifiedCode(
+            @RequestBody String email,
+            @RequestBody String code
+    ) {
+        try {
+            Boolean result = authService.verifiedCode(email, code);
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(new BaseResponse<>(result, HttpStatus.OK.value(), "인증완료"));
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new BaseResponse<>(null, HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage()));
+        }
+    }
 }
+

@@ -33,6 +33,9 @@ public class Member implements UserDetails {
     @Column
     private String password;
 
+    @Column
+    private Boolean enabled;
+
     @Enumerated
     private Role role;
 
