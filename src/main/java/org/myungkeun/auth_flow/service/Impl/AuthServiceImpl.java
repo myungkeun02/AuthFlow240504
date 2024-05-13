@@ -1,9 +1,7 @@
 package org.myungkeun.auth_flow.service.Impl;
 
-import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.myungkeun.auth_flow.config.mail.EmailSender;
 import org.myungkeun.auth_flow.config.security.JwtService;
 import org.myungkeun.auth_flow.dto.request.LoginRequest;
 import org.myungkeun.auth_flow.dto.request.SignupRequest;
@@ -12,24 +10,18 @@ import org.myungkeun.auth_flow.dto.response.SignupResponse;
 import org.myungkeun.auth_flow.entity.Member;
 import org.myungkeun.auth_flow.entity.Role;
 import org.myungkeun.auth_flow.exception.BadRequestException;
-import org.myungkeun.auth_flow.exception.BusinessLogicException;
-import org.myungkeun.auth_flow.exception.InternalServerErrorException;
 import org.myungkeun.auth_flow.repository.MemberRepository;
 import org.myungkeun.auth_flow.service.AuthService;
 import org.myungkeun.auth_flow.util.CacheManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
-import org.springframework.mail.MailSendException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.Duration;
-import java.util.Random;
+
 
 @Service
 @RequiredArgsConstructor
@@ -49,7 +41,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
-    private final EmailSender emailSender;
+
 
     @Override
     public LoginResponse login(LoginRequest request, HttpServletResponse response) {
@@ -100,47 +92,47 @@ public class AuthServiceImpl implements AuthService {
                     .build();
     }
 
-    @Override
-    public String sendCodeToEmail(String email) {
-        try {
-//            checkDuplicatedEmail(email);
-            String code = createCode();
-            String title = "이메일 인증코드 발송";
-            emailSender.sendEmail(email, title, code);
-            cacheManager.save(AUTH_CODE_PREFIX+email, code, Duration.ofDays(verifiedCodeExpiration));
-            return code;
-        } catch (Exception e) {
-            throw new MailSendException(e.getMessage());
-        }
-
-    }
-
+//    @Override
+//    public String sendCodeToEmail(String email) {
+//        try {
+////            checkDuplicatedEmail(email);
+//            String code = createCode();
+//            String title = "이메일 인증코드 발송";
+//            emailSender.sendEmail(email, title, code);
+//            cacheManager.save(AUTH_CODE_PREFIX+email, code, Duration.ofDays(verifiedCodeExpiration));
+//            return code;
+//        } catch (Exception e) {
+//            throw new MailSendException(e.getMessage());
+//        }
+//
+//    }
+//
     private void checkDuplicatedEmail(String email) {
         if (memberRepository.findByEmail(email).isPresent()) {
             throw new BadRequestException("이미 가입된 이메일 입니다.");
         }
     }
-
-    private String createCode() {
-        int length = 6;
-        try {
-            Random random = SecureRandom.getInstanceStrong();
-            StringBuilder builder = new StringBuilder();
-            for (int i = 0; i < length; i++) {
-                builder.append(random.nextInt(10));
-            }
-            return builder.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new BusinessLogicException("인증코드생성중 에러발생");
-        }
-    }
-
-    @Override
-    public Boolean verifiedCode(String email, String code) {
-        checkDuplicatedEmail(email);
-        String redisCode = cacheManager.getValues(AUTH_CODE_PREFIX + email);
-        return cacheManager.checkExistsValue(redisCode) && redisCode.equals(code);
-    }
+//
+//    private String createCode() {
+//        int length = 6;
+//        try {
+//            Random random = SecureRandom.getInstanceStrong();
+//            StringBuilder builder = new StringBuilder();
+//            for (int i = 0; i < length; i++) {
+//                builder.append(random.nextInt(10));
+//            }
+//            return builder.toString();
+//        } catch (NoSuchAlgorithmException e) {
+//            throw new BusinessLogicException("인증코드생성중 에러발생");
+//        }
+//    }
+//
+//    @Override
+//    public Boolean verifiedCode(String email, String code) {
+//        checkDuplicatedEmail(email);
+//        String redisCode = cacheManager.getValues(AUTH_CODE_PREFIX + email);
+//        return cacheManager.checkExistsValue(redisCode) && redisCode.equals(code);
+//    }
 
 //    private String buildEmail(String name, String link) {
 //        return "<div style=\"font-family:Helvetica,Arial,sans-serif;font-size:16px;margin:0;color:#0b0c0c\">\n" +

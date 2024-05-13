@@ -14,7 +14,7 @@ public interface AuthService {
 
     SignupResponse signup(SignupRequest request) throws MessagingException;
 
-    String sendCodeToEmail(String email) throws NoSuchAlgorithmException;
-
-    Boolean verifiedCode(String email, String code);
+//    String sendCodeToEmail(String email) throws NoSuchAlgorithmException;
+//
+//    Boolean verifiedCode(String email, String code);
 }
