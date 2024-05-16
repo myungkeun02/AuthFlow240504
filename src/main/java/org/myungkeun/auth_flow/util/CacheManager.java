@@ -31,13 +31,9 @@ public class CacheManager {
     }
 
 
-    @Transactional(readOnly = true)
-    public String getValues(String key) {
-        ValueOperations<String, Object> values = redisTemplate.opsForValue();
-        if (values.get(key) == null) {
-            return "false";
-        }
-        return (String) values.get(key);
+    public String getData(String key){//지정된 키(key)에 해당하는 데이터를 Redis에서 가져오는 메서드
+        ValueOperations<String, Object> valueOperations=redisTemplate.opsForValue();
+        return (String) valueOperations.get(key);
     }
 
     public void deleteValues(String key) {

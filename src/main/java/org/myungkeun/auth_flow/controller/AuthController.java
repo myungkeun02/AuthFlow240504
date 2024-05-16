@@ -1,8 +1,11 @@
 package org.myungkeun.auth_flow.controller;
 
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.myungkeun.auth_flow.dto.request.LoginRequest;
+import org.myungkeun.auth_flow.dto.request.MailCheckRequest;
+import org.myungkeun.auth_flow.dto.request.MailRequest;
 import org.myungkeun.auth_flow.dto.request.SignupRequest;
 import org.myungkeun.auth_flow.dto.response.BaseResponse;
 import org.myungkeun.auth_flow.dto.response.LoginResponse;
@@ -60,37 +63,37 @@ public class AuthController {
         }
     }
 
-//    @PostMapping("/email/varication-code/send")
-//    ResponseEntity<BaseResponse<String>> sendCodeToEmail(
-//            @RequestBody String email
-//    ) {
-//        try {
-//            String result = authService.sendCodeToEmail(email);
-//            return ResponseEntity
-//                    .status(HttpStatus.OK)
-//                    .body(new BaseResponse<>(result, HttpStatus.OK.value(), "이메일 전송 완료"));
-//        } catch (Exception e) {
-//            return ResponseEntity
-//                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                    .body(new BaseResponse<>(null, HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage()));
-//        }
-//    }
-//
-//    @GetMapping("/email/varacation-code")
-//    ResponseEntity<BaseResponse<Boolean>> verifiedCode(
-//            @RequestBody String email,
-//            @RequestBody String code
-//    ) {
-//        try {
-//            Boolean result = authService.verifiedCode(email, code);
-//            return ResponseEntity
-//                    .status(HttpStatus.OK)
-//                    .body(new BaseResponse<>(result, HttpStatus.OK.value(), "인증완료"));
-//        } catch (Exception e) {
-//            return ResponseEntity
-//                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                    .body(new BaseResponse<>(null, HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage()));
-//        }
-//    }
+    @PostMapping("/mail/send")
+    ResponseEntity<BaseResponse<String>> authMailSend(
+            @RequestBody MailRequest mailRequest
+    ) {
+        try {
+            String result = authService.joinEmail(mailRequest);
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(new BaseResponse<>(result, HttpStatus.OK.value(), "메일이 전송 되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new BaseResponse<>(null, HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage()));
+        }
+    }
+
+    @PostMapping("/mail/check")
+    ResponseEntity<BaseResponse<Boolean>> checkMail(
+            @RequestBody MailCheckRequest request
+    ) {
+        try {
+            Boolean result = authService.checkAuthNumber(request);
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(new BaseResponse<>(result, HttpStatus.OK.value(), "인증결과"));
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new BaseResponse<>(null, HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage()));
+
+        }
+    }
 }
 
