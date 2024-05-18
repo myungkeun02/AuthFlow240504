@@ -109,7 +109,7 @@ public class AuthServiceImpl implements AuthService {
                 "<br>" +
                 "인증번호를 제대로 입력해주세요";
         mailService.mailSend(setFrom, toMail, title, content);
-        cacheManager.save(Integer.toString(authCode), toMail, Duration.ofDays(verifiedCodeExpiration));
+        cacheManager.save(toMail, Integer.toString(authCode), Duration.ofDays(verifiedCodeExpiration));
         return Integer.toString(authCode);
     }
 
@@ -130,11 +130,15 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public Boolean checkAuthNumber(MailCheckRequest request) {
-        String cachedEmail = cacheManager.getData(request.getAuthNumber());
-        if (cachedEmail == null) {
+        String cachedAuthCode = cacheManager.getData(request.getEmail());
+        if (cachedAuthCode == null) {
             return false;
         }
-        return cachedEmail.equals(request.getAuthNumber());
+        boolean result = cachedAuthCode.equals(request.getAuthNumber());
+        if (result) {
+            cacheManager.deleteValues(request.getEmail());
+            return true;
+        } else return false;
     }
 
 }
