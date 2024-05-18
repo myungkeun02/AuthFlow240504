@@ -29,10 +29,10 @@ public class BlogController {
     }
 
     @GetMapping("/{id}")
-    ResponseEntity<BaseResponse<Blog>> getBlogById(
+    ResponseEntity<BaseResponse<Object>> getBlogById(
             @PathVariable(name = "id") Long id
     ) {
-        Blog result = blogService.getBlogById(id);
+        Object result = blogService.getBlogById(id);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(new BaseResponse<>(result, HttpStatus.OK.value(), "게시물을 가져왔습니다."));

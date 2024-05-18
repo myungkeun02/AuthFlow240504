@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface BlogService {
     List<Blog> getAllBlog();
-    Blog getBlogById(Long id);
+    Object getBlogById(Long id);
 
     Blog registerBlog(RegisterBlogRequest request);
 

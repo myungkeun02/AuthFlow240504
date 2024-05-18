@@ -130,7 +130,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public Boolean checkAuthNumber(MailCheckRequest request) {
-        String cachedAuthCode = cacheManager.getData(request.getEmail());
+        Object cachedAuthCode = cacheManager.getData(request.getEmail());
         if (cachedAuthCode == null) {
             return false;
         }
