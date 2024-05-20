@@ -69,6 +69,8 @@ public class MemberServiceImpl implements MemberService {
         return memberRepository.save(oldMember);
     }
 
+
+
     private String validateAndReturn(String value, String field) {
         if (value == null || value.trim().isEmpty()) {
             throw new BadRequestException(field + "이(가) 올바르지 않습니다.");

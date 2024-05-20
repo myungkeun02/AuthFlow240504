@@ -4,22 +4,19 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.myungkeun.auth_flow.config.mail.MailService;
 import org.myungkeun.auth_flow.config.security.JwtService;
-import org.myungkeun.auth_flow.dto.request.LoginRequest;
-import org.myungkeun.auth_flow.dto.request.MailCheckRequest;
-import org.myungkeun.auth_flow.dto.request.MailRequest;
-import org.myungkeun.auth_flow.dto.request.SignupRequest;
+import org.myungkeun.auth_flow.dto.request.*;
 import org.myungkeun.auth_flow.dto.response.LoginResponse;
 import org.myungkeun.auth_flow.dto.response.SignupResponse;
 import org.myungkeun.auth_flow.entity.Member;
 import org.myungkeun.auth_flow.entity.Role;
 import org.myungkeun.auth_flow.exception.BadRequestException;
+import org.myungkeun.auth_flow.exception.NotFoundException;
 import org.myungkeun.auth_flow.repository.MemberRepository;
 import org.myungkeun.auth_flow.service.AuthService;
 import org.myungkeun.auth_flow.util.CacheManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -141,4 +138,53 @@ public class AuthServiceImpl implements AuthService {
         } else return false;
     }
 
+
+    // 1. 사용자가 이메일 입력 -> repository에서 findByEmail 하여 결과값이 있을경우 메일 전송
+    // 2. 메일 전송에는 유저가 입력한 email, randomCode, bodyTemplate 을 매개변수로 전송
+    // 3. 메일 전송과 동시에 생성한 randomCode를 email을 키값으로 하여 reids에 저장.
+    // 4. 유저가 input 에 random 코드를 입력시 redis에 저장된 데이터와 비교후 boolean 리턴
+    // 5. 리턴값이 true 일 경우 비밀번호 변경 페이지에 newPassword와 confirmPassword를 입력 두 비밀번호 값이 일치할경우
+    // 6. 유저 email을 이용해 repository에 있는 유저 정보를 가져온뒤 password 변경
+
+    @Override
+    public String resetPasswordMailSend(ResetPasswordMailSendRequest request) {
+        Member member = memberRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new NotFoundException("해당 이메일로 가입된 유저 정보를 찾을 수 없습니다."));
+        int randomCode =  makeRandomNumber();
+        String setFrom = mailUsername;
+        String toMail = member.getEmail();
+        String title = "비밀번호 재설정 메일입니다..";
+        String content =  "비밀번호 재설정을 위한 인증코드입니다." +
+                "<br><br>" +
+                "인증 번호는 " + randomCode + "입니다." +
+                "<br>" +
+                "인증번호를 제대로 입력해주세요";
+        cacheManager.save(toMail, Integer.toString(randomCode), Duration.ofDays(300000));
+        mailService.mailSend(setFrom, toMail, title, content);
+        return "메일이 전송되었습니다.";
+    }
+
+    @Override
+    public Boolean resetPasswordCheck(ResetPasswordMailCheckRequest request) {
+        Object cachedRandomCode = cacheManager.getData(request.getEmail());
+        if (cachedRandomCode == null) {
+            return false;
+        }
+        boolean result = cachedRandomCode.equals(request.getRandomCode());
+        if (result) {
+            cacheManager.deleteValues(request.getEmail());
+            return true;
+        } else return false;
+    }
+
+    @Override
+    public Member resetPassword(ResetPasswordRequest request) {
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new BadRequestException("두 비밀번호가 일치하지 않습니다.");
+        }
+        Member member = memberRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new NotFoundException("해당 이메일로 가입된 유저 정보를 찾을 수 없습니다."));
+        member.setPassword(request.getNewPassword());
+        return memberRepository.save(member);
+    }
 }
