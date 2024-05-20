@@ -1,15 +1,31 @@
 version: "3"
 services:
+#  myungkeun-spring:
+#    image: myapp:latest
+#    build:
+#      context: .
+#      dockerfile: DockerFile
+#    ports:
+#      - "8080:8080"
+#    depends_on:
+#      - mysql-datasource
+#      - redis-cache
+#    networks:
+#      - myungkeun-networks
+
   mysql-datasource:
     image: mysql:8
     container_name: mysql-datasource
     ports:
-      - 3308:3306
+      - "3308:3306"
     environment:
       MYSQL_ROOT_PASSWORD: 1234
       MYSQL_DATABASE: AuthFlow
       MYSQL_USER: user
       MYSQL_PASSWORD: password
+#    networks:
+#      - myungkeun-networks
+
   redis-cache:
     image: redis
     container_name: redis-cache
@@ -20,3 +36,4 @@ services:
 #      - myungkeun-networks
 #networks:
 #  myungkeun-networks:
+#    driver: bridge

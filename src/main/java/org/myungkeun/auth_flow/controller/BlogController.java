@@ -1,11 +1,13 @@
 package org.myungkeun.auth_flow.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.myungkeun.auth_flow.dto.request.AllBlogResponse;
 import org.myungkeun.auth_flow.dto.request.RegisterBlogRequest;
 import org.myungkeun.auth_flow.dto.request.UpdateBlogRequest;
 import org.myungkeun.auth_flow.dto.response.BaseResponse;
 import org.myungkeun.auth_flow.entity.Blog;
 import org.myungkeun.auth_flow.service.BlogService;
+import org.myungkeun.auth_flow.util.AppConstants;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -39,8 +41,13 @@ public class BlogController {
     }
 
     @GetMapping("/all")
-    ResponseEntity<BaseResponse<List<Blog>>> getAllBlog() {
-        List<Blog> result = blogService.getAllBlog();
+    ResponseEntity<BaseResponse<AllBlogResponse>> getAllBlog(
+            @RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER, required = false) int pageNo,
+            @RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE, required = false) int pageSize,
+            @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY, required = false) String sortBy,
+            @RequestParam(value = "sortDir", defaultValue = AppConstants.DEFAULT_SORT_DIRECTION, required = false) String sortDir
+    ) {
+        AllBlogResponse result = blogService.getAllBlog(pageNo, pageSize, sortBy, sortDir);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(new BaseResponse<>(result, HttpStatus.OK.value(), "게시물을 가져왔습니다."));

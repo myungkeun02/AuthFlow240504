@@ -1,5 +1,6 @@
 package org.myungkeun.auth_flow.service;
 
+import org.myungkeun.auth_flow.dto.request.AllBlogResponse;
 import org.myungkeun.auth_flow.dto.request.RegisterBlogRequest;
 import org.myungkeun.auth_flow.dto.request.UpdateBlogRequest;
 import org.myungkeun.auth_flow.entity.Blog;
@@ -7,7 +8,7 @@ import org.myungkeun.auth_flow.entity.Blog;
 import java.util.List;
 
 public interface BlogService {
-    List<Blog> getAllBlog();
+    AllBlogResponse getAllBlog(int pageNo, int pageSize, String sortBy, String sortDir);
     Object getBlogById(Long id);
 
     Blog registerBlog(RegisterBlogRequest request);
