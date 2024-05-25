@@ -1,39 +1,46 @@
 version: "3"
 services:
-#  myungkeun-spring:
-#    image: myapp:latest
+#  application:
+#    container_name: auth_flow
 #    build:
-#      context: .
+#      context: ./
 #      dockerfile: DockerFile
+#    environment:
+#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-database:3306/AuthFlow
+#      SPRING_DATASOURCE_USERNAME: user
+#      SPRING_DATASOURCE_PASSWORD: password
+#      SPRING_REDIS_HOST: redis-cache
+#    depends_on:
+#      - database
+#      - redis
 #    ports:
 #      - "8080:8080"
-#    depends_on:
-#      - mysql-datasource
-#      - redis-cache
 #    networks:
-#      - myungkeun-networks
+#      - auth_flow_network
 
-  mysql-datasource:
+  database:
+    container_name: mysql-database
     image: mysql:8
-    container_name: mysql-datasource
-    ports:
-      - "3308:3306"
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: 1234
       MYSQL_DATABASE: AuthFlow
       MYSQL_USER: user
       MYSQL_PASSWORD: password
+    ports:
+      - "3308:3306"
 #    networks:
-#      - myungkeun-networks
+#      - auth_flow_network
 
-  redis-cache:
+  redis:
     image: redis
-    container_name: redis-cache
+#    container_name: redis-cache
+    container_name: localhost
     ports:
       - "6379:6379"
     command: redis-server --requirepass "Password@123"
 #    networks:
-#      - myungkeun-networks
+#      - auth_flow_network
 #networks:
-#  myungkeun-networks:
+#  auth_flow_network:
 #    driver: bridge
