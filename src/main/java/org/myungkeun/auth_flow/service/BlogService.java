@@ -16,4 +16,6 @@ public interface BlogService {
     Blog updateBlogById(Long id, UpdateBlogRequest request);
 
     String deleteBlogById(Long id);
+
+    AllBlogResponse getAllBlogByMemberId(Long memberId, int pageNo, int pageSize, String sortBy, String sortDir);
 }

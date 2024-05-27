@@ -15,4 +15,5 @@ public class RegisterBlogRequest {
     private String content;
     private String description;
     private String image;
+    private Long memberId;
 }
