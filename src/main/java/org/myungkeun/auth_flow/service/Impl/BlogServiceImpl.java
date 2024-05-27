@@ -1,7 +1,7 @@
 package org.myungkeun.auth_flow.service.Impl;
 
 import lombok.RequiredArgsConstructor;
-import org.myungkeun.auth_flow.dto.request.AllBlogResponse;
+import org.myungkeun.auth_flow.dto.response.AllBlogResponse;
 import org.myungkeun.auth_flow.dto.request.RegisterBlogRequest;
 import org.myungkeun.auth_flow.dto.request.UpdateBlogRequest;
 import org.myungkeun.auth_flow.entity.Blog;
@@ -56,20 +56,41 @@ public class BlogServiceImpl implements BlogService {
         System.out.println("redis");
         return redis;
     }
-    @Override
     public Blog updateBlogById(Long id, UpdateBlogRequest request) {
         Blog oldBlog = blogRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("해당 ID의 게시물을 찾지 못했습니다."));
 
-        oldBlog.setTitle(request.getTitle());
-        oldBlog.setContent(request.getContent());
-        oldBlog.setDescription(request.getDescription());
-        oldBlog.setImage(request.getImage());
-        Blog result = blogRepository.save(oldBlog);
-        cacheManager.deleteValues("blogs" + oldBlog.getMember().getId());
-        cacheManager.deleteValues(id.toString());
-        cacheManager.deleteValues("blogs");
-        return result;
+        boolean isUpdated = false;
+
+        if (request.getTitle() != null && !request.getTitle().equals(oldBlog.getTitle())) {
+            oldBlog.setTitle(request.getTitle());
+            isUpdated = true;
+        }
+
+        if (request.getContent() != null && !request.getContent().equals(oldBlog.getContent())) {
+            oldBlog.setContent(request.getContent());
+            isUpdated = true;
+        }
+
+        if (request.getDescription() != null && !request.getDescription().equals(oldBlog.getDescription())) {
+            oldBlog.setDescription(request.getDescription());
+            isUpdated = true;
+        }
+
+        if (request.getImage() != null && !request.getImage().equals(oldBlog.getImage())) {
+            oldBlog.setImage(request.getImage());
+            isUpdated = true;
+        }
+
+        if (isUpdated) {
+            Blog result = blogRepository.save(oldBlog);
+            cacheManager.deleteValues("blogs:" + oldBlog.getMember().getId());
+            cacheManager.deleteValues(id.toString());
+            cacheManager.deleteValues("blogs");
+            return result;
+        } else {
+            return oldBlog;
+        }
     }
 
     @Override

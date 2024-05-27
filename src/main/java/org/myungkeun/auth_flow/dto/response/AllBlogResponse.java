@@ -1,4 +1,4 @@
-package org.myungkeun.auth_flow.dto.request;
+package org.myungkeun.auth_flow.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
